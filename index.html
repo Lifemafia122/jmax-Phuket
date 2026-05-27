@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="th" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JMAX Phuket | Rent Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #0b1120; --bg2: #131c2e; --card: #182034; --hover: #1e2a40; --tri: #1e2a40;
+  --border: #263450; --border2: #1e2a40;
+  --t1: #f0f4ff; --t2: #8fa3cc; --t3: #526084;
+  --blue: #3b82f6; --blue-d: rgba(59,130,246,.12);
+  --green: #22c55e; --green-d: rgba(34,197,94,.12);
+  --yellow: #f59e0b; --yellow-d: rgba(245,158,11,.12);
+  --red: #ef4444; --red-d: rgba(239,68,68,.12);
+  --gold: #f0b429;
+  --r: 14px; --rs: 8px;
+  --sh: 0 2px 16px rgba(0,0,0,.35);
+  --shl: 0 8px 32px rgba(0,0,0,.5);
+}
+[data-theme=light] {
+  --bg: #f0f4fb; --bg2: #fff; --card: #fff; --hover: #f5f8ff; --tri: #edf2fb;
+  --border: #dce6f5; --border2: #edf2fb;
+  --t1: #0d1b36; --t2: #4a6080; --t3: #8fa3cc;
+  --sh: 0 2px 12px rgba(0,0,0,.08);
+  --shl: 0 8px 32px rgba(0,0,0,.12);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI','Noto Sans Thai',system-ui,sans-serif;background:var(--bg);color:var(--t1);min-height:100vh;font-size:14px;line-height:1.5;transition:background .3s,color .3s}
+
+/* HEADER */
+.header{position:sticky;top:0;z-index:200;background:var(--bg2);border-bottom:1px solid var(--border);padding:0 20px;height:56px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--sh)}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-logo{width:36px;height:36px;background:linear-gradient(135deg,#1d4ed8,#3b82f6);border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;color:#fff;flex-shrink:0}
+.brand-name{font-size:15px;font-weight:700}
+.brand-sub{font-size:11px;color:var(--t2)}
+.hr{display:flex;align-items:center;gap:8px}
+.sync-row{display:flex;align-items:center;gap:6px}
+.sync-dot{width:7px;height:7px;background:var(--green);border-radius:50%;animation:pulse 2.5s ease-in-out infinite}
+.sync-dot.busy{background:var(--yellow);animation:blink 1s linear infinite}
+.sync-dot.err{background:var(--red);animation:none}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.sync-ts{font-size:11px;color:var(--t3)}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border:none;border-radius:var(--rs);font-size:12px;font-weight:600;cursor:pointer;transition:all .18s}
+.btn-p{background:var(--blue);color:#fff}
+.btn-p:hover{background:#2563eb;transform:translateY(-1px)}
+.btn-g{background:var(--tri);color:var(--t2);border:1px solid var(--border)}
+.btn-g:hover{background:var(--hover);color:var(--t1)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important}
+.icon-btn{width:32px;height:32px;border-radius:7px;background:var(--tri);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t2);transition:all .18s;font-size:14px}
+.icon-btn:hover{background:var(--hover);color:var(--t1)}
+
+/* TAB NAV */
+.tab-nav-wrap{position:sticky;top:56px;z-index:190;background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto;-webkit-overflow-scrolling:touch;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.tab-nav-wrap::-webkit-scrollbar{height:3px}
+.tab-nav-wrap::-webkit-scrollbar-thumb{background:var(--border)}
+.tab-nav{display:flex;min-width:max-content;padding:0 20px}
+.tab-btn{padding:12px 16px;font-size:13px;font-weight:500;color:var(--t2);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;transition:all .18s;display:flex;align-items:center;gap:6px}
+.tab-btn:hover{color:var(--t1)}
+.tab-btn.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:700}
+.tab-dot{width:6px;height:6px;border-radius:50%}
+
+/* MAIN */
+.main{max-width:1400px;margin:0 auto;padding:20px}
+
+/* ERROR BANNER */
+.err-banner{display:none;background:var(--red-d);border:1px solid rgba(239,68,68,.3);border-radius:var(--rs);padding:10px 16px;color:var(--red);font-size:12px;margin-bottom:16px;align-items:flex-start;gap:8px;line-height:1.6}
+.err-banner.show{display:flex}
+
+/* TAB PANES */
+.tab-pane{display:none}
+.tab-pane.active{display:block;animation:fadeIn .3s}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* KPI GRID */
+.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:18px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:18px;box-shadow:var(--sh);position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s}
+.kpi:hover{transform:translateY(-2px);box-shadow:var(--shl)}
+.kpi::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px}
+.kpi.kb::after{background:linear-gradient(90deg,#1d4ed8,#60a5fa)}
+.kpi.kg::after{background:linear-gradient(90deg,#16a34a,#4ade80)}
+.kpi.ky::after{background:linear-gradient(90deg,#b45309,#fbbf24)}
+.kpi.kr::after{background:linear-gradient(90deg,#b91c1c,#f87171)}
+.kpi-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+.kpi-icon{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px}
+.kb .kpi-icon{background:var(--blue-d)} .kg .kpi-icon{background:var(--green-d)}
+.ky .kpi-icon{background:var(--yellow-d)} .kr .kpi-icon{background:var(--red-d)}
+.kpi-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:100px}
+.kpi-badge.up{background:var(--green-d);color:var(--green)}
+.kpi-badge.warn{background:var(--yellow-d);color:var(--yellow)}
+.kpi-badge.down{background:var(--red-d);color:var(--red)}
+.kpi-val{font-size:26px;font-weight:800;color:var(--t1);line-height:1;margin-bottom:3px;font-variant-numeric:tabular-nums}
+.kpi-val.sm{font-size:20px}
+.kpi-lbl{font-size:12px;color:var(--t2)}
+
+/* CHARTS ROW */
+.charts-row{display:grid;grid-template-columns:280px 1fr;gap:14px;margin-bottom:18px}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:18px;box-shadow:var(--sh)}
+.cc-title{font-size:13px;font-weight:700;color:var(--t1)}
+.cc-sub{font-size:11px;color:var(--t2);margin-top:2px;margin-bottom:14px}
+.ch-wrap{position:relative;height:190px}
+.ch-legend{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+.ch-leg-item{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--t2)}
+.ch-leg-dot{width:7px;height:7px;border-radius:50%}
+
+/* SECTION */
+.sec-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px}
+.sec-title{font-size:15px;font-weight:700;color:var(--t1)}
+.sec-cnt{font-size:11px;color:var(--t3);background:var(--tri);border:1px solid var(--border);padding:2px 8px;border-radius:100px;margin-left:6px}
+.sec-right{display:flex;align-items:center;gap:8px}
+.search-wrap{position:relative;display:flex;align-items:center}
+.search-wrap input{width:180px;padding:6px 10px 6px 28px;background:var(--card);border:1px solid var(--border);border-radius:var(--rs);color:var(--t1);font-size:12px;outline:none;transition:border-color .2s}
+.search-wrap input:focus{border-color:var(--blue)}
+.search-wrap input::placeholder{color:var(--t3)}
+.search-icon{position:absolute;left:8px;color:var(--t3);font-size:12px}
+.filter-sel{padding:6px 10px;background:var(--card);border:1px solid var(--border);border-radius:var(--rs);color:var(--t1);font-size:12px;outline:none;cursor:pointer}
+
+/* TABLE */
+.tbl-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;margin-bottom:18px}
+.tbl-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;white-space:nowrap}
+thead th{background:var(--tri);padding:10px 14px;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;text-align:left;border-bottom:1px solid var(--border)}
+thead th.r{text-align:right}
+tbody tr{border-bottom:1px solid var(--border2);transition:background .12s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--hover)}
+tbody td{padding:12px 14px;font-size:13px;color:var(--t1);vertical-align:middle}
+tbody td.r{text-align:right}
+.tc-name{font-weight:600;font-size:13px}
+.tc-aka{font-size:11px;color:var(--t2)}
+.amt{font-weight:700;font-variant-numeric:tabular-nums;color:var(--gold)}
+.amt.red{color:var(--red)}
+.dt{font-size:12px;color:var(--t2)}
+.badge{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:100px;font-size:11px;font-weight:700}
+.b-active{background:var(--green-d);color:var(--green)}
+.b-expiring{background:var(--yellow-d);color:var(--yellow)}
+.b-urgent{background:var(--red-d);color:var(--red)}
+.b-future{background:var(--blue-d);color:var(--blue)}
+.b-paid{background:var(--green-d);color:var(--green)}
+.b-unpaid{background:var(--red-d);color:var(--red)}
+.b-partial{background:var(--yellow-d);color:var(--yellow)}
+.b-info{background:var(--blue-d);color:var(--blue)}
+.prog{width:60px;height:4px;background:var(--tri);border-radius:100px;overflow:hidden}
+.prog-fill{height:100%;border-radius:100px}
+.pf-g{background:var(--green)} .pf-y{background:var(--yellow)} .pf-r{background:var(--red)}
+.no-badge{display:inline-flex;width:22px;height:22px;align-items:center;justify-content:center;background:var(--blue-d);color:var(--blue);font-size:10px;font-weight:700;border-radius:5px}
+.sum-tr td{background:var(--tri);font-weight:700;font-size:13px;border-top:2px solid var(--border)}
+.sum-tr td.amt{font-size:14px}
+.note-pill{display:inline-flex;align-items:center;gap:3px;background:var(--yellow-d);color:var(--yellow);font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;max-width:200px;white-space:normal;word-break:break-word}
+
+/* STORE PAGE */
+.store-hero{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:16px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.store-hero-left{display:flex;align-items:center;gap:14px}
+.store-avatar{width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,#1d4ed8,#3b82f6);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:#fff;flex-shrink:0}
+.store-name{font-size:20px;font-weight:800;color:var(--t1)}
+.store-aka{font-size:13px;color:var(--t2);margin-top:2px}
+.store-hero-right{display:flex;gap:12px;flex-wrap:wrap}
+.hero-stat{background:var(--tri);border:1px solid var(--border2);border-radius:var(--rs);padding:10px 14px;text-align:center;min-width:100px}
+.hero-stat-val{font-size:17px;font-weight:800;color:var(--t1);font-variant-numeric:tabular-nums}
+.hero-stat-val.gold{color:var(--gold)}
+.hero-stat-val.red{color:var(--red)}
+.hero-stat-val.green{color:var(--green)}
+.hero-stat-lbl{font-size:10px;color:var(--t3);margin-top:2px;text-transform:uppercase;letter-spacing:.5px}
+
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px}
+.info-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px;box-shadow:var(--sh)}
+.info-card-title{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border2)}
+.info-row:last-child{border-bottom:none}
+.info-key{font-size:12px;color:var(--t2)}
+.info-val{font-size:13px;font-weight:600;color:var(--t1)}
+.info-val.gold{color:var(--gold)}
+
+/* Period list */
+.period-item{background:var(--tri);border:1px solid var(--border2);border-radius:var(--rs);padding:10px 14px;margin-bottom:8px}
+.period-item.active-period{border-color:var(--green);background:var(--green-d)}
+.period-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.period-dates{font-size:12px;color:var(--t2)}
+.period-note{font-size:11px;color:var(--t3);margin-top:4px}
+
+/* Payment instruction box */
+.setup-box{background:var(--blue-d);border:1px solid rgba(59,130,246,.3);border-radius:var(--r);padding:20px;margin-bottom:18px}
+.setup-box h3{font-size:14px;font-weight:700;color:var(--t1);margin-bottom:10px}
+.setup-box p{font-size:13px;color:var(--t2);margin-bottom:12px;line-height:1.7}
+.setup-code{background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);padding:10px 14px;font-family:monospace;font-size:11px;color:var(--t2);overflow-x:auto;white-space:pre}
+
+/* MONTHLY TABLE in store page */
+.month-tbl-wrap{margin-bottom:18px}
+
+/* LOADING */
+.loading-overlay{position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.loading-overlay.hidden{display:none}
+.loader{width:42px;height:42px;border:4px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-text{font-size:14px;color:var(--t2)}
+.load-sub{font-size:12px;color:var(--t3)}
+
+/* EMPTY STATE */
+.empty{padding:48px 20px;text-align:center;color:var(--t3)}
+.empty-icon{font-size:36px;margin-bottom:10px}
+.empty-title{font-size:14px;font-weight:600;margin-bottom:5px;color:var(--t2)}
+.empty-desc{font-size:12px}
+
+/* FOOTER */
+.footer{border-top:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--t3)}
+.footer strong{color:var(--t2)}
+
+/* RESPONSIVE */
+@media(max-width:1100px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.charts-row{grid-template-columns:1fr}}
+@media(max-width:900px){.hide-md{display:none}}
+@media(max-width:640px){
+  .header{padding:0 14px}.main{padding:14px}
+  .kpi-grid{grid-template-columns:repeat(2,1fr);gap:10px}
+  .kpi-val{font-size:20px}.store-hero{flex-direction:column}
+  .hide-sm{display:none!important}.brand-sub{display:none}
+  .sync-ts{display:none}
+}
+@media(max-width:900px){.kpi-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:500px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:350px){.kpi-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loader"></div>
+  <div class="load-text">กำลังโหลดข้อมูล...</div>
+  <div class="load-sub" id="loadSub">ดึงข้อมูลจาก Google Sheets</div>
+  <div id="debugLog" style="margin-top:16px;max-width:340px;font-size:11px;color:#8fa3cc;text-align:left;background:rgba(0,0,0,.3);padding:10px 14px;border-radius:8px;line-height:1.8;word-break:break-all"></div>
+</div>
+
+<header class="header">
+  <div class="brand">
+    <div class="brand-logo">JM</div>
+    <div>
+      <div class="brand-name">JMAX Phuket</div>
+      <div class="brand-sub">Rent &amp; Income Dashboard</div>
+    </div>
+  </div>
+  <div class="hr">
+    <div class="sync-row">
+      <div class="sync-dot" id="syncDot"></div>
+      <span class="sync-ts" id="syncTs">—</span>
+    </div>
+    <button class="btn btn-p" id="refreshBtn" onclick="loadData()">↻ รีเฟรช</button>
+    <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" title="เปลี่ยน Theme">🌙</button>
+  </div>
+</header>
+
+<!-- Tab Nav -->
+<div class="tab-nav-wrap">
+  <div class="tab-nav" id="tabNav">
+    <button class="tab-btn active" data-tab="overview" onclick="switchTab('overview')">
+      📊 ภาพรวม
+    </button>
+    <!-- Store tabs injected here -->
+  </div>
+</div>
+
+<main class="main">
+  <div class="err-banner" id="errBanner">
+    <span>⚠</span><span id="errTxt">ไม่สามารถโหลดข้อมูลได้</span>
+  </div>
+
+  <!-- OVERVIEW TAB -->
+  <div class="tab-pane active" id="pane-overview">
+    <div class="kpi-grid">
+      <div class="kpi kb">
+        <div class="kpi-top"><div class="kpi-icon">💰</div><span class="kpi-badge up" id="k-rev-badge">—</span></div>
+        <div class="kpi-val sm" id="k-revenue">—</div>
+        <div class="kpi-lbl">รายได้ค่าเช่า / เดือน</div>
+      </div>
+      <div class="kpi kg">
+        <div class="kpi-top"><div class="kpi-icon">🏪</div></div>
+        <div class="kpi-val" id="k-stores">—</div>
+        <div class="kpi-lbl">ร้านค้าทั้งหมด (Active)</div>
+      </div>
+      <div class="kpi ky">
+        <div class="kpi-top"><div class="kpi-icon">⏳</div><span class="kpi-badge warn">ภายใน 60 วัน</span></div>
+        <div class="kpi-val" id="k-expiring">—</div>
+        <div class="kpi-lbl">สัญญาใกล้หมดอายุ</div>
+      </div>
+      <div class="kpi kr">
+        <div class="kpi-top"><div class="kpi-icon">⚠️</div><span class="kpi-badge down">≤ 30 วัน</span></div>
+        <div class="kpi-val" id="k-urgent">—</div>
+        <div class="kpi-lbl">เร่งด่วน / ต้องต่อสัญญา</div>
+      </div>
+      <div class="kpi" style="border-color:rgba(239,68,68,.35);background:linear-gradient(135deg,var(--card),rgba(239,68,68,.07))">
+        <div class="kpi::after" style="display:none"></div>
+        <div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#dc2626,#f87171);border-radius:0 0 var(--r) var(--r)"></div>
+        <div class="kpi-top"><div class="kpi-icon" style="background:rgba(239,68,68,.15)">🔴</div><span class="kpi-badge down" id="k-owed-cnt">— ร้าน</span></div>
+        <div class="kpi-val sm" id="k-outstanding" style="color:var(--red)">—</div>
+        <div class="kpi-lbl">ยอดค้างชำระรวม</div>
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="cc-title">สัดส่วนค่าเช่ารายร้าน</div>
+        <div class="cc-sub">% ของรายได้รวม</div>
+        <div class="ch-wrap"><canvas id="donutChart"></canvas></div>
+        <div class="ch-legend" id="donutLegend"></div>
+      </div>
+      <div class="chart-card">
+        <div class="cc-title">ค่าเช่าต่อเดือน แยกรายร้าน</div>
+        <div class="cc-sub">บาท — สีแสด = ใกล้หมดสัญญา, สีแดง = เร่งด่วน</div>
+        <div class="ch-wrap"><canvas id="barChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="sec-bar">
+      <div>
+        <span class="sec-title">รายละเอียดร้านค้าทั้งหมด</span>
+        <span class="sec-cnt" id="overviewCount">0 ร้าน</span>
+      </div>
+      <div class="sec-right">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="ovSearch" placeholder="ค้นหา..." oninput="filterOverview()">
+        </div>
+        <select class="filter-sel" id="ovFilter" onchange="filterOverview()">
+          <option value="">ทุกสถานะ</option>
+          <option value="active">กำลังเช่า</option>
+          <option value="expiring">ใกล้หมด</option>
+          <option value="urgent">เร่งด่วน</option>
+        </select>
+      </div>
+    </div>
+    <div class="tbl-card">
+      <div class="tbl-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>ร้านค้า / ผู้เช่า</th>
+              <th class="hide-sm">พื้นที่</th>
+              <th class="r">ค่าเช่า</th>
+              <th class="r hide-md">ค่าน้ำ</th>
+              <th class="r hide-md">ค่าไฟ</th>
+              <th class="r" style="color:var(--blue)">รวมที่ต้องชำระ</th>
+              <th class="r" style="color:var(--red)">ยอดค้าง</th>
+              <th class="hide-sm">วันชำระ</th>
+              <th>วันหมดสัญญา</th>
+              <th>สถานะ</th>
+              <th class="hide-sm">ความคืบหน้า</th>
+            </tr>
+          </thead>
+          <tbody id="overviewTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Expiry Alert -->
+    <div id="expirySection" style="display:none">
+      <div class="sec-bar"><span class="sec-title">⚠ สัญญาที่ต้องติดตามเร่งด่วน</span></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-bottom:18px" id="expiryGrid"></div>
+    </div>
+  </div>
+
+  <!-- STORE TABS — injected dynamically -->
+  <div id="storePanes"></div>
+</main>
+
+<footer class="footer">
+  <span>🏢 <strong>JMAX Corporation</strong> — Phuket Property Management</span>
+  <span id="footerTs">—</span>
+</footer>
+
+<script>
+// ═══════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════
+const SHEET_ID = '1vt05_5WnDuRiDlIG05OawueE9EuQLl_VOYgZqQkvSNY';
+const GVIZ    = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json';
+const REFRESH_MS = 5 * 60 * 1000;
+const WARN_DAYS  = 60;
+const URGENT_DAYS = 30;
+
+// ═══════════════════════════════════════════════════
+// THEME
+// ═══════════════════════════════════════════════════
+function toggleTheme() {
+  const html = document.documentElement;
+  const dark = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', dark ? 'light' : 'dark');
+  document.getElementById('themeBtn').textContent = dark ? '☀️' : '🌙';
+  localStorage.setItem('jmax_theme', dark ? 'light' : 'dark');
+  // re-render charts
+  if (window._stores) { destroyCharts(); buildCharts(window._stores); }
+}
+(function(){
+  const t = localStorage.getItem('jmax_theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+  document.getElementById('themeBtn').textContent = t === 'dark' ? '🌙' : '☀️';
+})();
+
+// ═══════════════════════════════════════════════════
+// THAI DATE
+// ═══════════════════════════════════════════════════
+const TH_MON = {'ม.ค.':0,'ก.พ.':1,'มี.ค.':2,'เม.ย.':3,'พ.ค.':4,'มิ.ย.':5,'ก.ค.':6,'ส.ค.':7,'ก.ย.':8,'ต.ค.':9,'พ.ย.':10,'ธ.ค.':11};
+const TH_MON_LONG = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const TH_MON_SHORT = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+
+function parseThaiDate(s) {
+  if (!s) return null;
+  s = String(s).trim();
+  const p = s.split(' ');
+  if (p.length !== 3) return null;
+  const d = parseInt(p[0]);
+  const m = TH_MON[p[1]];
+  const y = parseInt(p[2]) + 1957; // 2-digit BE → CE
+  if (isNaN(d) || m === undefined || isNaN(y)) return null;
+  return new Date(y, m, d);
+}
+function fmtThaiDate(dt) {
+  if (!dt) return '—';
+  const be = dt.getFullYear() + 543 - 2500;
+  return `${dt.getDate()} ${TH_MON_SHORT[dt.getMonth()]} ${be}`;
+}
+function fmtMonth(dt) {
+  return TH_MON_LONG[dt.getMonth()] + ' ' + (dt.getFullYear() + 543);
+}
+function daysLeft(dt) {
+  const now = new Date(); now.setHours(0,0,0,0);
+  return Math.round((dt - now) / 86400000);
+}
+function contractStatus(start, end) {
+  const now = new Date(); now.setHours(0,0,0,0);
+  if (!end) return { key:'unknown', label:'ไม่ทราบ', days:null };
+  if (start && start > now) return { key:'future', label:'ยังไม่เริ่ม', days: daysLeft(start) };
+  const dl = daysLeft(end);
+  if (dl < 0) return { key:'expired', label:'หมดอายุ', days:dl };
+  if (dl <= URGENT_DAYS) return { key:'urgent', label:'เร่งด่วน', days:dl };
+  if (dl <= WARN_DAYS) return { key:'expiring', label:'ใกล้หมด', days:dl };
+  return { key:'active', label:'กำลังเช่า', days:dl };
+}
+function contractProgress(start, end) {
+  if (!start || !end) return 0;
+  const now = new Date();
+  const total = end - start;
+  const elapsed = now - start;
+  return Math.min(100, Math.max(0, Math.round(elapsed / total * 100)));
+}
+function fmtCredit(n) {
+  // n < 0 = overpaid, show as positive credit amount
+  return '฿' + Math.abs(n).toLocaleString('th-TH', {minimumFractionDigits:0, maximumFractionDigits:2});
+}
+function fmtBaht(n) {
+  if (!n && n !== 0) return '—';
+  return Number(n).toLocaleString('th-TH') + ' ฿';
+}
+
+// ═══════════════════════════════════════════════════
+// FETCH — all methods in PARALLEL, first success wins
+// ═══════════════════════════════════════════════════
+// Debug helper
+function dbg(msg) {
+  const el = document.getElementById('debugLog');
+  if (el) el.innerHTML += msg + '<br>';
+  console.log('[DBG]', msg);
+}
+
+function parseGvizText(txt) {
+  if (!txt || typeof txt !== 'string') throw new Error('empty/invalid response');
+  // Fast path: extract JSON between first { and last }
+  const start = txt.indexOf('{');
+  const end   = txt.lastIndexOf('}');
+  if (start >= 0 && end > start) {
+    try { return JSON.parse(txt.slice(start, end + 1)); } catch(_) {}
+  }
+  // Fallback: strip JSONP wrapper
+  const m = txt.match(/[a-zA-Z0-9_.]+\s*\(\s*([\s\S]+)\s*\)\s*;?\s*$/);
+  if (!m) throw new Error('parse error: no JSON found');
+  return JSON.parse(m[1]);
+}
+
+// Google gviz returns: google.visualization.Query.setResponse({...})
+// We intercept that global call instead of using a named callback
+function makeJsonpPromise(url) {
+  return new Promise((res, rej) => {
+    const sid = '_gjsp_' + Date.now();
+    const timer = setTimeout(() => { cleanup(); dbg('❌ JSONP: timeout 14s'); rej(new Error('JSONP timeout')); }, 14000);
+
+    function cleanup() {
+      clearTimeout(timer);
+      const el = document.getElementById(sid);
+      if (el) el.remove();
+      // Restore previous setResponse if any
+      if (window._prevSetResponse !== undefined) {
+        if (!window.google) window.google = {};
+        if (!window.google.visualization) window.google.visualization = {};
+        window.google.visualization.Query.setResponse = window._prevSetResponse;
+        delete window._prevSetResponse;
+      }
+    }
+
+    // Intercept google.visualization.Query.setResponse
+    window.google = window.google || {};
+    window.google.visualization = window.google.visualization || {};
+    window.google.visualization.Query = window.google.visualization.Query || {};
+    window._prevSetResponse = window.google.visualization.Query.setResponse;
+    window.google.visualization.Query.setResponse = function(data) {
+      cleanup();
+      dbg('✅ gviz setResponse: status=' + (data&&data.status) + ' table=' + (data&&data.table?'ok':'missing'));
+      if (!data || !data.table) { rej(new Error('no table in response')); return; }
+      res(data);
+    };
+
+    const s = document.createElement('script');
+    s.id  = sid;
+    // Use plain URL without callback param — gviz will call setResponse automatically
+    // url already has ?tqx=out:json — use directly, gviz calls setResponse
+    dbg('\U0001f504 JSONP setResponse: loading ' + url.slice(0,80));
+    s.src = url;
+    s.onerror = () => { cleanup(); dbg('❌ JSONP: script load error'); rej(new Error('JSONP script error')); };
+    document.head.appendChild(s);
+  });
+}
+
+async function fetchSheet(sheetParam) {
+  const base = GVIZ + (sheetParam ? '&sheet=' + encodeURIComponent(sheetParam) : '');
+  const url  = base + '&nocache=' + Date.now();
+
+  function wrapFetch(promise) {
+    return promise.catch(e => { throw e; });
+  }
+
+  // Helper: wrap fetch with AbortController timeout so hung requests fail fast
+  function timedFetch(fetchPromise, ms) {
+    return new Promise((res, rej) => {
+      const t = setTimeout(() => rej(new Error('fetch timeout')), ms);
+      fetchPromise.then(v => { clearTimeout(t); res(v); }, e => { clearTimeout(t); rej(e); });
+    });
+  }
+
+  function proxyFetch(proxyUrl, ms) {
+    return timedFetch(
+      fetch(proxyUrl, { mode:'cors' })
+        .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+        .then(t => { const d = parseGvizText(t); if (!d || !d.table) throw new Error('no table'); return d; }),
+      ms
+    );
+  }
+
+  const enc = encodeURIComponent(url);
+  const isHttps = location.protocol === 'https:';
+
+  // Direct fetch (no proxy) — always the primary method
+  const directFetch = timedFetch(
+    fetch(url, { cache:'no-store', mode:'cors' })
+      .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+      .then(t => { const d = parseGvizText(t); if (!d || !d.table) throw new Error('no table'); return d; }),
+    8000
+  );
+
+  // JSONP — works everywhere, zero proxy caching
+  const jsonpFetch = makeJsonpPromise(url);
+
+  if (isHttps) {
+    // On HTTPS: try direct fetch first (sequential, no parallel JSONP race)
+    // Racing JSONP in parallel causes cross-sheet handler pollution on sequential fetches
+    try {
+      return await timedFetch(
+        fetch(url, { cache:'no-store', mode:'cors' })
+          .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+          .then(t => { const d = parseGvizText(t); if (!d || !d.table) throw new Error('no table'); return d; }),
+        12000
+      );
+    } catch(_) {
+      // Direct failed → fall back to JSONP (also no proxy caching)
+      return await makeJsonpPromise(url);
+    }
+  }
+
+  // On file:// or http://: add proxy fallbacks since fetch may be blocked by CORS
+  const candidates = [
+    directFetch,
+    jsonpFetch,
+    timedFetch(
+      fetch('https://api.allorigins.win/get?url=' + enc, { mode:'cors' })
+        .then(r => { if (!r.ok) throw new Error('!ok'); return r.json(); })
+        .then(j => { if (!j || !j.contents) throw new Error('no contents');
+          const d = parseGvizText(j.contents); if (!d || !d.table) throw new Error('no table'); return d; }),
+      10000
+    ),
+    proxyFetch('https://corsproxy.io/?' + enc, 10000),
+  ];
+  return Promise.any(candidates);
+}
+
+// ═══════════════════════════════════════════════════
+// PARSE CONTRACTS — ยอดค้าง ALWAYS col B (index 1)
+// ═══════════════════════════════════════════════════
+function parseContracts(gviz) {
+  if (!gviz || gviz.status === 'error') return [];
+  const tbl = gviz.table;
+  if (!tbl || !tbl.rows) return [];
+
+  // ── Dynamic header detection ──────────────────────
+  let hdr = -1;
+  let cm = {}; // column map: {no, store, aka, area, rent, elec, water, payDay, start, end, note}
+
+  const TH_KEYS = {
+    no:      v => v === 'No.' || v === 'no' || v === 'ลำดับ',
+    store:   v => v.includes('ร้านค้า') || v.includes('ชื่อร้าน') || v.includes('ผู้เช่า') || v === 'ร้าน',
+    aka:     v => v.includes('AKA') || v.includes('aka') || v.includes('ชื่อย่อ') || v.includes('ชื่อเรียก'),
+    area:    v => v.includes('พื้นที่') || v.toLowerCase() === 'area',
+    rent:    v => v.includes('ค่าเช่า') || v.includes('เช่า/') || v === 'เช่า',
+    elec:    v => v.includes('ค่าไฟ') || v.includes('ไฟ'),
+    water:   v => v.includes('ค่าน้ำ') || v.includes('น้ำ'),
+    payDay:  v => v.includes('วันชำระ') || v.includes('วันที่ชำระ'),
+    start:   v => v.includes('เริ่ม') || v.toLowerCase().includes('start'),
+    end:     v => (v.includes('หมด') || v.includes('สิ้นสุด') || v.toLowerCase().includes('end')) && !v.includes('เริ่ม'),
+    note:    v => v.includes('หมายเหตุ') || v.toLowerCase().includes('note') || v.includes('รายละเอียด')
+  };
+
+  for (let i = 0; i < Math.min(10, tbl.rows.length); i++) {
+    const r = tbl.rows[i];
+    if (!r.c) continue;
+    const vals = r.c.map(c => c ? String(c.v || c.f || '').trim() : '');
+    const hasHeader = vals.some(v => v === 'No.' || v.includes('ร้านค้า') || v.includes('ผู้เช่า') || v.includes('ค่าเช่า'));
+    if (hasHeader) {
+      hdr = i;
+      vals.forEach((v, idx) => {
+        if (!v) return;
+        for (const [key, test] of Object.entries(TH_KEYS)) {
+          if (!(key in cm) && test(v)) { cm[key] = idx; }
+        }
+      });
+      break;
+    }
+  }
+  if (hdr < 0) hdr = 3;
+
+  // Fallback column map (original "Tab" sheet layout):
+  // A(0)=empty, B(1)=No., C(2)=store, D(3)=aka, E(4)=area, F(5)=rent, G(6)=elec, H(7)=water, I(8)=payDay, J(9)=start, K(10)=end, L(11)=note
+  // Fill any missing keys from known Tab-sheet layout (some header cells are blank)
+  const _fb = { no:1, store:2, aka:3, area:4, rent:5, elec:6, water:7, payDay:8, start:9, end:10, note:11 };
+  for (const [k, v] of Object.entries(_fb)) { if (!(k in cm)) cm[k] = v; }
+
+  const gv = (r, idx) => {
+    if (idx === undefined || idx === null) return '';
+    const c = r.c[idx];
+    if (!c) return '';
+    const f = c.f, v = c.v;
+    return (f != null) ? String(f) : (v != null ? String(v) : '');
+  };
+  const gn = (r, idx) => {
+    if (idx === undefined || idx === null) return 0;
+    const c = r.c[idx];
+    if (!c || c.v == null) return 0;
+    return typeof c.v === 'number' ? c.v : parseFloat(String(c.v).replace(/,/g,'')) || 0;
+  };
+
+  const rows = [];
+  for (let i = hdr + 1; i < tbl.rows.length; i++) {
+    const r = tbl.rows[i];
+    if (!r.c) continue;
+    const store = gv(r, cm.store);
+    if (!store || store.trim() === '') continue;
+    // ยอดค้าง comes from 'รายละเอียดผู้เช่า' sheet via merge step — default 0 here
+    const outstanding = 0;
+    rows.push({
+      no: gv(r, cm.no),
+      store: store.trim(),
+      aka: gv(r, cm.aka),
+      area: gv(r, cm.area),
+      rent: gn(r, cm.rent),
+      elec: gv(r, cm.elec),
+      water: gv(r, cm.water),
+      payDay: gv(r, cm.payDay),
+      startStr: gv(r, cm.start),
+      endStr: gv(r, cm.end),
+      note: gv(r, cm.note),
+      outstanding,
+      startDate: parseThaiDate(gv(r, cm.start)),
+      endDate: parseThaiDate(gv(r, cm.end))
+    });
+  }
+  return rows;
+}
+
+// ═══════════════════════════════════════════════════
+// GROUP STORES — each store = one entry, multiple periods
+// ═══════════════════════════════════════════════════
+function groupStores(rows) {
+  const stores = [];
+  let cur = null;
+  rows.forEach(row => {
+    if (row.no) {
+      cur = {
+        no: row.no, store: row.store, aka: row.aka,
+        area: row.area, payDay: row.payDay,
+        outstanding: row.outstanding || 0, // ยอดค้างชำระจาก col B
+        periods: [], id: 'store-' + stores.length
+      };
+      stores.push(cur);
+    }
+    if (cur) {
+      // If a sub-row has outstanding data, take the latest non-zero value
+      if (row.outstanding > 0) cur.outstanding = row.outstanding;
+      cur.periods.push({
+        rent: row.rent, elec: row.elec, water: row.water,
+        startStr: row.startStr, endStr: row.endStr,
+        startDate: row.startDate, endDate: row.endDate, note: row.note
+      });
+    }
+  });
+
+  // Determine active period for each store
+  const now = new Date(); now.setHours(0,0,0,0);
+  stores.forEach(st => {
+    // Find currently active period
+    const active = st.periods.find(p =>
+      p.startDate && p.endDate && p.startDate <= now && p.endDate >= now
+    );
+    // Or nearest upcoming
+    const upcoming = st.periods.filter(p => p.startDate && p.startDate > now)
+      .sort((a,b) => a.startDate - b.startDate)[0];
+    // Or most recent past
+    const past = st.periods.filter(p => p.endDate && p.endDate < now)
+      .sort((a,b) => b.endDate - a.endDate)[0];
+
+    st.activePeriod = active || upcoming || past || st.periods[st.periods.length - 1];
+    st.currentRent = st.activePeriod ? st.activePeriod.rent : 0;
+    st.status = active
+      ? contractStatus(st.activePeriod.startDate, st.activePeriod.endDate)
+      : (upcoming
+          ? { key:'expiring', label:'ใกล้หมดสัญญาเดิม', days: daysLeft(upcoming.startDate) }
+          : contractStatus(st.activePeriod ? st.activePeriod.startDate : null,
+                           st.activePeriod ? st.activePeriod.endDate : null));
+    st.progress = st.activePeriod
+      ? contractProgress(st.activePeriod.startDate, st.activePeriod.endDate) : 0;
+  });
+  return stores;
+}
+
+// ═══════════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════════
+let activeTab = 'overview';
+function switchTab(id) {
+  activeTab = id;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('active', p.id === 'pane-' + id));
+}
+function buildTabs(stores) {
+  const nav = document.getElementById('tabNav');
+  // Remove old store tabs
+  nav.querySelectorAll('.store-tab-btn').forEach(b => b.remove());
+  stores.forEach(st => {
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn store-tab-btn';
+    btn.dataset.tab = st.id;
+    const dotColor = {active:'#22c55e',expiring:'#f59e0b',urgent:'#ef4444',expired:'#64748b',future:'#3b82f6'}[st.status.key] || '#3b82f6';
+    btn.innerHTML = `<span class="tab-dot" style="background:${dotColor}"></span>${st.aka || st.store.substring(0,8)}`;
+    btn.onclick = () => switchTab(st.id);
+    nav.appendChild(btn);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// OVERVIEW RENDER
+// ═══════════════════════════════════════════════════
+let allStores = [];
+function filterOverview() {
+  const q = (document.getElementById('ovSearch').value || '').toLowerCase();
+  const f = document.getElementById('ovFilter').value;
+  const filtered = allStores.filter(st => {
+    const mq = !q || st.store.toLowerCase().includes(q) || (st.aka||'').toLowerCase().includes(q);
+    const mf = !f || st.status.key === f;
+    return mq && mf;
+  });
+  renderOverviewTable(filtered);
+  document.getElementById('overviewCount').textContent = filtered.length + ' ร้าน';
+}
+
+function renderOverviewTable(stores) {
+  const tbody = document.getElementById('overviewTbody');
+  if (!stores.length) {
+    tbody.innerHTML = `<tr><td colspan="12"><div class="empty"><div class="empty-icon">🔍</div><div class="empty-title">ไม่พบข้อมูล</div></div></td></tr>`;
+    return;
+  }
+  let total = 0;
+  let totalOwed = 0;
+  let rows = stores.map(st => {
+    const s = st.status;
+    const bc = {active:'b-active',expiring:'b-expiring',urgent:'b-urgent',expired:'b-urgent',future:'b-future'}[s.key]||'b-future';
+    const pc = {active:'pf-g',expiring:'pf-y',urgent:'pf-r',expired:'pf-r'}[s.key]||'pf-g';
+    const dHint = s.days !== null
+      ? (s.key==='expired' ? `<div class="dt" style="font-size:10px">หมดไป ${Math.abs(s.days)}ว.แล้ว</div>`
+        : s.key==='future' ? `<div class="dt" style="font-size:10px">เริ่มใน ${s.days}ว.</div>`
+        : `<div class="dt" style="font-size:10px">เหลือ ${s.days}ว.</div>`) : '';
+    if (['active','expiring','urgent'].includes(s.key)) total += st.currentRent;
+    const owed = st.outstanding || 0;
+    if (owed > 0) totalOwed += owed;
+    const owedCell = owed > 0
+      ? `<span style="color:var(--red);font-weight:700">${fmtBaht(owed)}</span>`
+      : owed < 0
+        ? `<span style="color:#7c3aed;font-weight:700" title="จ่ายเกินมา ${fmtCredit(owed)}">เกิน ${fmtCredit(owed)}</span>`
+        : `<span style="color:var(--green);font-size:11px">ไม่มีค้าง</span>`;
+    return `<tr onclick="switchTab('${st.id}')" style="cursor:pointer">
+      <td><span class="no-badge">${st.no}</span></td>
+      <td><div class="tc-name">${st.store}</div><div class="tc-aka">${st.aka||'—'}</div></td>
+      <td class="dt hide-sm">${st.area||'—'}</td>
+      <td class="r amt">${fmtBaht(st.currentRent)}</td>
+      <td class="r dt hide-md">${st.monthlyWater > 0 ? fmtBaht(st.monthlyWater) : '—'}</td>
+      <td class="r dt hide-md">${st.monthlyElec > 0 ? fmtBaht(st.monthlyElec) : '—'}</td>
+      <td class="r amt" style="font-weight:700;color:var(--blue)">${st.monthlyRevenue > 0 ? fmtBaht(st.monthlyRevenue) : fmtBaht(st.currentRent)}</td>
+      <td class="r">${owedCell}</td>
+      <td class="dt hide-sm">${st.payDay||'—'}</td>
+      <td>${st.activePeriod?`<div class="dt">${st.activePeriod.endStr||'—'}</div>`:'—'}${dHint}</td>
+      <td><span class="badge ${bc}">${s.label}</span></td>
+      <td class="hide-sm">
+        <div style="display:flex;align-items:center;gap:7px">
+          <div class="prog"><div class="prog-fill ${pc}" style="width:${st.progress}%"></div></div>
+          <span style="font-size:10px;color:var(--t3)">${st.progress}%</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+  rows += `<tr class="sum-tr">
+    <td colspan="2"><strong>รวมทั้งหมด</strong></td>
+    <td class="hide-sm" style="color:var(--t2);font-size:11px">${stores.length} ร้าน</td>
+    <td class="r amt">${fmtBaht(total)}</td>
+    <td class="r dt hide-md">${stores.reduce((s,x)=>s+(x.monthlyWater||0),0) > 0 ? fmtBaht(stores.reduce((s,x)=>s+(x.monthlyWater||0),0)) : '—'}</td>
+    <td class="r dt hide-md">${stores.reduce((s,x)=>s+(x.monthlyElec||0),0) > 0 ? fmtBaht(stores.reduce((s,x)=>s+(x.monthlyElec||0),0)) : '—'}</td>
+    <td class="r amt" style="font-weight:700;color:var(--blue)">${fmtBaht(stores.reduce((s,x)=>s+(x.monthlyRevenue||x.currentRent||0),0))}</td>
+    <td class="r" style="color:var(--red);font-weight:700">${totalOwed > 0 ? fmtBaht(totalOwed) : '0 ฿'}</td>
+    <td colspan="4" class="hide-sm" style="color:var(--t2);font-size:11px">รายได้คาดหมาย/เดือน (ร้านที่ active)</td>
+  </tr>`;
+  tbody.innerHTML = rows;
+}
+
+function renderOverviewKPI(stores) {
+  const active = stores.filter(s => ['active','expiring','urgent'].includes(s.status.key));
+  const expiring = stores.filter(s => s.status.key === 'expiring');
+  const urgent = stores.filter(s => s.status.key === 'urgent');
+
+  // Revenue: use data from รายละเอียดผู้เช่า sheet (actual monthly collection)
+  const sheetTotal = stores._totalMonthlyRevenue || 0;
+  const sumMonthly = stores.reduce((sum, s) => sum + (s.monthlyRevenue || 0), 0);
+  const totalRev = sheetTotal || sumMonthly || active.reduce((sum, s) => sum + s.currentRent, 0);
+
+  const totalOwed  = stores.reduce((sum, s) => sum + Math.max(s.outstanding || 0, 0), 0);
+  const totalCredit = stores.reduce((sum, s) => sum + Math.min(s.outstanding || 0, 0), 0);
+  const owedCount  = stores.filter(s => (s.outstanding || 0) > 0).length;
+  const creditCount = stores.filter(s => (s.outstanding || 0) < 0).length;
+
+  const monthLabel = stores._currentMonthLabel || '';
+  document.getElementById('k-revenue').textContent = fmtBaht(totalRev);
+  document.getElementById('k-rev-badge').textContent = monthLabel || (active.length + ' ร้าน');
+  document.getElementById('k-stores').textContent = active.length;
+  document.getElementById('k-expiring').textContent = expiring.length;
+  document.getElementById('k-urgent').textContent = urgent.length;
+  document.getElementById('k-outstanding').textContent = totalOwed > 0 ? fmtBaht(totalOwed) : '0 ฿';
+  document.getElementById('k-owed-cnt').textContent = owedCount + ' ร้าน'
+    + (creditCount > 0 ? ' | เกิน ' + creditCount + ' ร้าน' : '');
+  if (urgent.length > 0) document.getElementById('k-urgent').style.color = 'var(--red)';
+  if (expiring.length > 0) document.getElementById('k-expiring').style.color = 'var(--yellow)';
+  if (totalOwed > 0) document.getElementById('k-outstanding').style.color = 'var(--red)';
+  else document.getElementById('k-outstanding').style.color = 'var(--green)';
+}
+
+function renderExpiryCards(stores) {
+  const list = stores.filter(s => ['urgent','expiring','expired'].includes(s.status.key));
+  const sec = document.getElementById('expirySection');
+  const grid = document.getElementById('expiryGrid');
+  if (!list.length) { sec.style.display = 'none'; return; }
+  sec.style.display = 'block';
+  list.sort((a,b) => (a.activePeriod?.endDate||new Date(9999,0,1)) - (b.activePeriod?.endDate||new Date(9999,0,1)));
+  grid.innerHTML = list.map(st => {
+    const s = st.status;
+    const urgentCls = (s.key==='urgent'||s.key==='expired') ? 'border-color:rgba(239,68,68,.4)' : 'border-color:rgba(245,158,11,.4)';
+    const fillColor = s.key==='urgent' ? '#ef4444' : s.key==='expired' ? '#64748b' : '#f59e0b';
+    const dLabel = s.key==='expired' ? `หมดไป ${Math.abs(s.days)}ว.แล้ว` : `เหลือ ${s.days}ว.`;
+    const bc = s.key==='expired'||s.key==='urgent' ? 'b-urgent' : 'b-expiring';
+    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px;cursor:pointer;transition:transform .2s;${urgentCls}" onclick="switchTab('${st.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+        <div><div style="font-size:13px;font-weight:700">${st.store}</div><div style="font-size:11px;color:var(--t2)">${st.aka||'—'}</div></div>
+        <span class="badge ${bc}">${s.label}</span>
+      </div>
+      <div style="height:5px;background:var(--tri);border-radius:100px;overflow:hidden;margin-bottom:8px">
+        <div style="height:100%;width:${st.progress}%;background:${fillColor};border-radius:100px"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:11px;color:var(--t2)">📅 ${st.activePeriod?.endStr||'—'} · ${dLabel}</span>
+        <span class="amt">${fmtBaht(st.currentRent)}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════
+// CHARTS
+// ═══════════════════════════════════════════════════
+window._charts = {};
+function destroyCharts() {
+  Object.values(window._charts).forEach(c => { try { c.destroy(); } catch(_) {} });
+  window._charts = {};
+}
+function isDark() { return document.documentElement.getAttribute('data-theme') === 'dark'; }
+function gridColor() { return isDark() ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)'; }
+function tickColor() { return isDark() ? '#526084' : '#8fa3cc'; }
+
+function buildCharts(stores) {
+  const active = stores.filter(s => ['active','expiring','urgent'].includes(s.status.key) && (s.monthlyRevenue || s.currentRent) > 0);
+  active.sort((a,b) => b.currentRent - a.currentRent);
+
+  const palette = ['#3b82f6','#22c55e','#f59e0b','#ef4444','#a855f7','#06b6d4','#f43f5e','#84cc16','#fb923c','#e879f9'];
+  const barColors = active.map(s => s.status.key==='urgent' ? '#ef4444' : s.status.key==='expiring' ? '#f59e0b' : '#3b82f6');
+
+  // Donut
+  const dc = document.getElementById('donutChart').getContext('2d');
+  window._charts.donut = new Chart(dc, {
+    type: 'doughnut',
+    data: { labels: active.map(s => s.aka||s.store), datasets: [{ data: active.map(s => s.monthlyRevenue || s.currentRent), backgroundColor: palette, borderWidth: 0, hoverOffset: 6 }] },
+    options: { responsive:true, maintainAspectRatio:false, cutout:'70%', plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: c => ` ${c.label}: ${c.raw.toLocaleString('th-TH')} ฿` } } } }
+  });
+  document.getElementById('donutLegend').innerHTML = active.map((s,i) =>
+    `<div class="ch-leg-item"><div class="ch-leg-dot" style="background:${palette[i%palette.length]}"></div><span>${s.aka||s.store.substring(0,10)}</span></div>`
+  ).join('');
+
+  // Bar
+  const bc2 = document.getElementById('barChart').getContext('2d');
+  window._charts.bar = new Chart(bc2, {
+    type: 'bar',
+    data: { labels: active.map(s => s.aka||s.store.substring(0,10)), datasets: [{ data: active.map(s => s.monthlyRevenue || s.currentRent), backgroundColor: barColors, borderRadius: 6, borderSkipped: false }] },
+    options: {
+      responsive:true, maintainAspectRatio:false, indexAxis:'y',
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: c => ` ${c.raw.toLocaleString('th-TH')} ฿/เดือน` } } },
+      scales:{
+        x:{ grid:{color:gridColor()}, ticks:{color:tickColor(),font:{size:10},callback:v=>(v/1000)+'K'} },
+        y:{ grid:{display:false}, ticks:{color:tickColor(),font:{size:11}} }
+      }
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// STORE PAGE RENDER
+// ═══════════════════════════════════════════════════
+function buildStorePanes(stores) {
+  const container = document.getElementById('storePanes');
+  container.innerHTML = stores.map(st => `
+    <div class="tab-pane" id="pane-${st.id}">
+      ${renderStoreHTML(st)}
+    </div>`).join('');
+}
+
+function renderStoreHTML(st) {
+  const ap = st.activePeriod;
+  const s = st.status;
+  const badgeCls = {active:'b-active',expiring:'b-expiring',urgent:'b-urgent',expired:'b-urgent',future:'b-future'}[s.key]||'b-future';
+  const initials = (st.aka||st.store).substring(0,2).toUpperCase();
+  const daysLabel = s.days !== null
+    ? (s.key==='expired' ? `หมดอายุแล้ว ${Math.abs(s.days)} วัน`
+      : s.key==='future' ? `เริ่มสัญญาในอีก ${s.days} วัน`
+      : `เหลือ ${s.days} วัน`) : '';
+
+  // Build periods list
+  const now = new Date(); now.setHours(0,0,0,0);
+  const periodsHTML = st.periods.map((p, i) => {
+    const isActive = p.startDate && p.endDate && p.startDate <= now && p.endDate >= now;
+    return `<div class="period-item ${isActive?'active-period':''}">
+      <div class="period-header">
+        <div class="period-dates">📅 ${p.startStr||'—'} → ${p.endStr||'—'}</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          ${isActive ? '<span class="badge b-active">ปัจจุบัน</span>' : ''}
+          <span class="amt">${fmtBaht(p.rent)}<span style="font-size:10px;color:var(--t3)">/เดือน</span></span>
+        </div>
+      </div>
+      ${p.note ? `<div class="period-note">📌 ${p.note}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  // Monthly schedule — last 6 months + next 3 months
+  const monthRows = buildMonthlySchedule(st);
+
+  return `
+    <!-- Store Hero -->
+    <div class="store-hero">
+      <div class="store-hero-left">
+        <div class="store-avatar">${initials}</div>
+        <div>
+          <div class="store-name">${st.store}</div>
+          <div class="store-aka">${st.aka || ''}</div>
+          <div style="margin-top:6px"><span class="badge ${badgeCls}">${s.label}</span>
+            ${daysLabel ? `<span style="font-size:11px;color:var(--t2);margin-left:8px">${daysLabel}</span>` : ''}
+          </div>
+        </div>
+      </div>
+      <div class="store-hero-right">
+        <div class="hero-stat">
+          <div class="hero-stat-val gold">${fmtBaht(st.currentRent)}</div>
+          <div class="hero-stat-lbl">ค่าเช่า/เดือน</div>
+        </div>
+        <div class="hero-stat" style="${(st.outstanding||0)>0?'background:rgba(239,68,68,.08);border-radius:8px;padding:4px 8px;border:1px solid rgba(239,68,68,.25)':''}">
+          <div class="hero-stat-val" style="color:${(st.outstanding||0)>0?'var(--red)':(st.outstanding||0)<0?'#7c3aed':'var(--green)'}">
+            ${(st.outstanding||0)>0?fmtBaht(st.outstanding):(st.outstanding||0)<0?('เกิน '+fmtCredit(st.outstanding)):'ไม่มีค้าง'}
+          </div>
+          <div class="hero-stat-lbl" style="${(st.outstanding||0)>0?'color:var(--red)':(st.outstanding||0)<0?'color:#7c3aed':''}">
+            ${(st.outstanding||0)<0?'💜 เครดิตเกิน':'🔴 ยอดค้างชำระ'}
+          </div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-val">${st.monthlyElec > 0 ? fmtBaht(st.monthlyElec) : '—'}</div>
+          <div class="hero-stat-lbl">ค่าไฟเดือนนี้</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-val">${st.monthlyWater > 0 ? fmtBaht(st.monthlyWater) : '—'}</div>
+          <div class="hero-stat-lbl">ค่าน้ำเดือนนี้</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-val">${st.area||'—'}</div>
+          <div class="hero-stat-lbl">พื้นที่</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Info Cards -->
+    <div class="info-grid">
+      <div class="info-card">
+        <div class="info-card-title">📋 ข้อมูลสัญญา</div>
+        <div class="info-row"><span class="info-key">วันเริ่มสัญญา</span><span class="info-val">${ap?.startStr||'—'}</span></div>
+        <div class="info-row"><span class="info-key">วันหมดสัญญา</span><span class="info-val">${ap?.endStr||'—'}</span></div>
+        <div class="info-row"><span class="info-key">วันชำระ</span><span class="info-val">${st.payDay||'—'}</span></div>
+        <div class="info-row"><span class="info-key">ความคืบหน้าสัญญา</span><span class="info-val">${st.progress}%</span></div>
+      </div>
+      <div class="info-card">
+        <div class="info-card-title">💡 ค่าสาธารณูปโภค & การชำระ</div>
+        <div class="info-row"><span class="info-key">ค่าไฟเดือนนี้</span><span class="info-val">${st.monthlyElec > 0 ? fmtBaht(st.monthlyElec) : '—'}</span></div>
+        <div class="info-row"><span class="info-key">ค่าน้ำเดือนนี้</span><span class="info-val">${st.monthlyWater > 0 ? fmtBaht(st.monthlyWater) : '—'}</span></div>
+        <div class="info-row"><span class="info-key">ค่าเช่า / เดือน</span><span class="info-val gold">${fmtBaht(st.currentRent)}</span></div>
+        <div class="info-row" style="${(st.outstanding||0)>0?'background:rgba(239,68,68,.06);border-radius:6px;padding:4px 6px;margin:4px -4px':''}">
+          <span class="info-key" style="${(st.outstanding||0)>0?'color:var(--red)':''}">🔴 ยอดค้างชำระ (ล่าสุด)</span>
+          <span class="info-val" style="color:${(st.outstanding||0)>0?'var(--red)':(st.outstanding||0)<0?'#7c3aed':'var(--green)'}; font-weight:700">
+            ${(st.outstanding||0)>0?fmtBaht(st.outstanding):(st.outstanding||0)<0?('มีเครดิตเกิน '+fmtCredit(st.outstanding)):'ไม่มียอดค้าง ✓'}
+          </span>
+        </div>
+      </div>
+      ${st.periods.length > 1 ? `
+      <div class="info-card">
+        <div class="info-card-title">📅 ช่วงสัญญาทั้งหมด (${st.periods.length} ช่วง)</div>
+        ${periodsHTML}
+      </div>` : ''}
+    </div>
+
+    <!-- Monthly Schedule -->
+    <div class="sec-bar"><span class="sec-title">📆 ตารางรายรับรายเดือน</span></div>
+    <div class="tbl-card month-tbl-wrap">
+      <div class="tbl-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>เดือน</th>
+              <th class="r">ค่าเช่า</th>
+              <th class="r hide-sm">ค่าไฟ (฿)</th>
+              <th class="r hide-sm">ค่าน้ำ (฿)</th>
+              <th class="r">รวมที่ต้องรับ</th>
+              <th class="r" style="color:var(--green)">ชำระจริง</th>
+              <th class="r" style="color:var(--red)">คงค้าง</th>
+              <th>สถานะสัญญา</th>
+            </tr>
+          </thead>
+          <tbody>${monthRows}</tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="setup-box" style="border-color:rgba(59,130,246,.3);background:rgba(59,130,246,.05)">
+      <h3>📌 วิธีอัพเดทยอดค้างชำระ</h3>
+      <p>ยอดค้างชำระอ่านจาก <strong>Column B</strong> ของ Sheet <strong>"รายละเอียดผู้เช่า"</strong> อัตโนมัติ<br>
+      แค่อัพเดทตัวเลขในช่อง B ของร้าน <strong>${st.store}</strong> ใน Google Sheet แล้วกด <strong>↻ รีเฟรช</strong> — Dashboard จะแสดงยอดล่าสุดทันที</p>
+      <p style="margin-top:8px;font-size:12px;color:var(--t3)">ยอดค้างปัจจุบัน: <strong style="color:${(st.outstanding||0)>0?'var(--red)':(st.outstanding||0)<0?'#7c3aed':'var(--green)'}">
+            ${(st.outstanding||0)>0?fmtBaht(st.outstanding):(st.outstanding||0)<0?('มีเครดิตเกิน '+fmtCredit(st.outstanding)):'ไม่มียอดค้าง'}</strong></p>
+    </div>
+  `;
+}
+
+// Column index from date using anchor: col 10 = Jan 2026
+function colForDate(d) {
+  return 10 + (d.getFullYear() - 2026) * 12 + d.getMonth();
+}
+
+function buildMonthlySchedule(st) {
+  const now = new Date();
+  const rows = [];
+  // Show 6 months back + current + 3 months forward
+  for (let offset = -5; offset <= 3; offset++) {
+    const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+    // Find which period covers this month
+    const period = st.periods.find(p => {
+      if (!p.startDate || !p.endDate) return false;
+      const mStart = new Date(p.startDate.getFullYear(), p.startDate.getMonth(), 1);
+      const mEnd = new Date(p.endDate.getFullYear(), p.endDate.getMonth(), 1);
+      return d >= mStart && d <= mEnd;
+    });
+    const isCurrentMonth = offset === 0;
+    const isFuture = offset > 0;
+    const monthLabel = fmtMonth(d);
+
+    if (!period) {
+      rows.push(`<tr style="${isCurrentMonth?'background:var(--blue-d)':''}">
+        <td><span style="font-size:12px;${isCurrentMonth?'font-weight:700':''}">${monthLabel}</span></td>
+        <td class="r" style="color:var(--t3)">ไม่มีสัญญา</td>
+        <td class="r hide-sm" style="color:var(--t3)">—</td>
+        <td class="r hide-sm" style="color:var(--t3)">—</td>
+        <td class="r" style="color:var(--t3)">—</td>
+        <td class="r" style="color:var(--t3)">—</td>
+        <td class="r" style="color:var(--t3)">—</td>
+        <td><span class="badge b-info">ไม่มีสัญญา</span></td>
+      </tr>`);
+      continue;
+    }
+    const rent = period.rent;
+    // ดึงค่าไฟ/ค่าน้ำจาก รายละเอียดผู้เช่า sheet ทุกเดือน (by column)
+    const col      = colForDate(d);
+    const elecNum  = st._elecByCol[col]  || 0;
+    const waterNum = st._waterByCol[col] || 0;
+    const total    = st._revByCol[col]   || (rent + elecNum + waterNum);
+    const elecFmt  = elecNum  > 0 ? fmtBaht(elecNum)  : '—';
+    const waterFmt = waterNum > 0 ? fmtBaht(waterNum) : '—';
+    const statusBadge = isFuture
+      ? `<span class="badge b-future">กำลังมา</span>`
+      : isCurrentMonth
+        ? `<span class="badge b-active">เดือนนี้</span>`
+        : `<span class="badge b-info" style="background:rgba(100,116,139,.1);color:var(--t2)">ผ่านแล้ว</span>`;
+    const paidAmt = st._paidByCol[col] || 0;
+    const owedAmt = st._owedByCol[col] || 0;
+    const paidFmt = paidAmt > 0
+      ? `<span style="color:var(--green);font-weight:700">${fmtBaht(paidAmt)}</span>`
+      : `<span style="color:var(--t3);font-size:11px">—</span>`;
+    const owedFmt = owedAmt > 0
+      ? `<span style="color:var(--red);font-weight:700">${fmtBaht(owedAmt)}</span>`
+      : owedAmt < 0
+        ? `<span style="color:#7c3aed;font-weight:700">เกิน ${fmtCredit(owedAmt)}</span>`
+        : `<span style="color:var(--green);font-size:11px">✓</span>`;
+    rows.push(`<tr style="${isCurrentMonth?'background:var(--blue-d)':''}">
+      <td><span style="font-size:12px;${isCurrentMonth?'font-weight:700;color:var(--blue)':''}">${monthLabel}${isCurrentMonth?' 📌':''}</span></td>
+      <td class="r amt">${fmtBaht(rent)}</td>
+      <td class="r dt hide-sm">${elecFmt}</td>
+      <td class="r dt hide-sm">${waterFmt}</td>
+      <td class="r amt" style="font-weight:700">${fmtBaht(total)}</td>
+      <td class="r">${paidFmt}</td>
+      <td class="r">${owedFmt}</td>
+      <td>${statusBadge}</td>
+    </tr>`);
+  }
+  return rows.join('');
+}
+
+// ═══════════════════════════════════════════════════
+// MAIN LOAD
+// ═══════════════════════════════════════════════════
+async function loadData() {
+  const btn = document.getElementById('refreshBtn');
+  const dot = document.getElementById('syncDot');
+  const err = document.getElementById('errBanner');
+  btn.disabled = true;
+  btn.innerHTML = '<span style="display:inline-block;animation:spin .7s linear infinite">↻</span> กำลังโหลด...';
+  dot.className = 'sync-dot busy';
+  err.classList.remove('show');
+  document.getElementById('loadSub').textContent = 'เชื่อมต่อ Google Sheets...';
+
+  try {
+    // Step 1: Load main contract data from Tab sheet (column structure is known)
+    document.getElementById('loadSub').textContent = 'กำลังโหลดข้อมูลสัญญา...';
+    let gviz;
+    try { gviz = await fetchSheet('Tab'); }
+    catch(_) {
+      try { gviz = await fetchSheet(''); }
+      catch(e2) { throw new Error('โหลด Sheet ไม่สำเร็จ: ' + e2.message); }
+    }
+
+    // Step 2: Load outstanding balances from รายละเอียดผู้เช่า (col B = ยอดค้าง)
+    document.getElementById('loadSub').textContent = 'กำลังโหลดยอดค้างชำระ...';
+    const outstandingByName = {};
+    const outstandingByIndex = [];
+    const storeRevenue = {};
+    const storeElec = {};
+    const storeWater = {};
+    const storeElecByCol = {};
+    const storeWaterByCol = {};
+    const storeRevByCol = {};
+    const storePaidByCol = {};
+    const storeOwedByCol = {};
+    try {
+      const ouGviz = await fetchSheet('รายละเอียดผู้เช่า');
+      if (ouGviz && ouGviz.table && ouGviz.table.rows) {
+        // Column-to-month anchor: col 10 = Jan 2026
+        const ANCHOR_COL = 10, ANCHOR_YEAR = 2026, ANCHOR_MONTH = 0;
+        const _now = new Date();
+        let currentMonthCol = ANCHOR_COL + (_now.getFullYear() - ANCHOR_YEAR) * 12 + (_now.getMonth() - ANCHOR_MONTH);
+        // Clamp to valid range
+        if (currentMonthCol < 3) currentMonthCol = 3;
+        if (currentMonthCol >= ouGviz.table.cols.length) currentMonthCol = ouGviz.table.cols.length - 1;
+        window._currentMonthCol = currentMonthCol;
+
+        // Row 0 = รายได้รวม: read total revenue for current month
+        const row0 = ouGviz.table.rows[0];
+        if (row0 && row0.c) {
+          const mc = row0.c[currentMonthCol];
+          window._totalMonthlyRevenue = mc ?
+            (typeof mc.v === 'number' ? mc.v : parseFloat(String(mc.f||mc.v||0).replace(/,/g,'')) || 0) : 0;
+        }
+
+        // Structure:
+        //   Col C = "ค่าเช่า"  → col B = store AKA
+        //   Col C = "รวม"      → cols 3+ = monthly total (rent+elec+water)
+        //   Col C = "คงค้าง"   → col B = outstanding balance
+        let lastStoreName = '';
+        for (let i = 0; i < ouGviz.table.rows.length; i++) {
+          const r = ouGviz.table.rows[i];
+          if (!r.c) continue;
+          const colB = r.c[1];
+          const colC = r.c[2];
+          const cVal = colC ? String(colC.v || colC.f || '').trim() : '';
+          const bRaw = colB ? String(colB.f || colB.v || '').trim() : '';
+
+          if (cVal === 'ค่าเช่า' && bRaw) {
+            lastStoreName = bRaw;
+          } else if (cVal === 'ค่าน้ำ' && lastStoreName) {
+            if (!storeWaterByCol[lastStoreName]) storeWaterByCol[lastStoreName] = {};
+            r.c.forEach((cell, ci) => {
+              if (ci < 3 || !cell) return;
+              const v = typeof cell.v === 'number' ? cell.v : parseFloat(String(cell.f||cell.v||'0').replace(/,/g,'')) || 0;
+              if (v) storeWaterByCol[lastStoreName][ci] = v;
+            });
+            storeWater[lastStoreName] = storeWaterByCol[lastStoreName][currentMonthCol] || 0;
+          } else if (cVal === 'ค่าไฟ' && lastStoreName) {
+            if (!storeElecByCol[lastStoreName]) storeElecByCol[lastStoreName] = {};
+            r.c.forEach((cell, ci) => {
+              if (ci < 3 || !cell) return;
+              const v = typeof cell.v === 'number' ? cell.v : parseFloat(String(cell.f||cell.v||'0').replace(/,/g,'')) || 0;
+              if (v) storeElecByCol[lastStoreName][ci] = v;
+            });
+            storeElec[lastStoreName] = storeElecByCol[lastStoreName][currentMonthCol] || 0;
+          } else if (cVal === 'รวม' && lastStoreName) {
+            if (!storeRevByCol[lastStoreName]) storeRevByCol[lastStoreName] = {};
+            r.c.forEach((cell, ci) => {
+              if (ci < 3 || !cell) return;
+              const v = typeof cell.v === 'number' ? cell.v : parseFloat(String(cell.f||cell.v||'0').replace(/,/g,'')) || 0;
+              if (v) storeRevByCol[lastStoreName][ci] = v;
+            });
+            storeRevenue[lastStoreName] = storeRevByCol[lastStoreName][currentMonthCol] || 0;
+          } else if (cVal === 'ชำระแล้ว' && lastStoreName) {
+            if (!storePaidByCol[lastStoreName]) storePaidByCol[lastStoreName] = {};
+            r.c.forEach((cell, ci) => {
+              if (ci < 3 || !cell) return;
+              const v = typeof cell.v === 'number' ? cell.v : parseFloat(String(cell.f||cell.v||'0').replace(/,/g,'')) || 0;
+              if (v) storePaidByCol[lastStoreName][ci] = v;
+            });
+          } else if (cVal === 'คงค้าง' && lastStoreName) {
+            // คงค้างรายเดือน (col 3+) + คงค้างสะสม (col B)
+            if (!storeOwedByCol[lastStoreName]) storeOwedByCol[lastStoreName] = {};
+            r.c.forEach((cell, ci) => {
+              if (ci < 3 || !cell) return;
+              const v = typeof cell.v === 'number' ? cell.v : parseFloat(String(cell.f||cell.v||'0').replace(/,/g,'')) || 0;
+              if (v) storeOwedByCol[lastStoreName][ci] = v;
+            });
+            const owed = typeof colB?.v === 'number' ? colB.v :
+              parseFloat(bRaw.replace(/,/g, '')) || 0;
+            outstandingByIndex.push({ storeName: lastStoreName, owed });
+            outstandingByName[lastStoreName] = owed;
+            lastStoreName = '';
+          }
+        }
+      }
+    } catch(_) { /* ยอดค้างไม่สำเร็จ ไม่ block การโหลดหลัก */ }
+    const rows = parseContracts(gviz);
+    if (!rows.length) throw new Error('ไม่พบข้อมูลผู้เช่า (ตรวจสอบชื่อ Sheet)');
+
+    const stores = groupStores(rows);
+
+    // Apply outstanding + monthly revenue from รายละเอียดผู้เช่า
+    const _today = new Date();
+    const _monthLabel = _today.toLocaleDateString('th-TH',{month:'short',year:'2-digit'});
+    stores.forEach((st, idx) => {
+      let owed = outstandingByName[st.store] || outstandingByName[st.aka] || 0;
+      if (!owed && outstandingByIndex[idx] !== undefined) owed = outstandingByIndex[idx].owed || 0;
+      st.outstanding = owed;
+      // Monthly figures from รายละเอียดผู้เช่า sheet
+      const _key = st.aka || st.store;
+      st.monthlyRevenue = storeRevenue[_key] || storeRevenue[st.store] || 0;
+      st.monthlyElec    = storeElec[_key]    || storeElec[st.store]    || 0;
+      st.monthlyWater   = storeWater[_key]   || storeWater[st.store]   || 0;
+      // Per-column lookups for all months
+      st._elecByCol  = storeElecByCol[_key]  || storeElecByCol[st.store]  || {};
+      st._waterByCol = storeWaterByCol[_key] || storeWaterByCol[st.store] || {};
+      st._revByCol   = storeRevByCol[_key]   || storeRevByCol[st.store]   || {};
+      st._paidByCol  = storePaidByCol[_key]  || storePaidByCol[st.store]  || {};
+      st._owedByCol  = storeOwedByCol[_key]  || storeOwedByCol[st.store]  || {};
+    });
+    stores._currentMonthLabel = _monthLabel;
+    stores._totalMonthlyRevenue = window._totalMonthlyRevenue || 0;
+
+    window._stores = stores;
+    allStores = stores;
+
+    // Build UI
+    buildTabs(stores);
+    buildStorePanes(stores);
+
+    renderOverviewKPI(stores);
+    destroyCharts();
+    buildCharts(stores);
+    renderOverviewTable(stores);
+    renderExpiryCards(stores);
+    document.getElementById('overviewCount').textContent = stores.length + ' ร้าน';
+
+    dot.className = 'sync-dot';
+    const now = new Date();
+    const ts = now.toLocaleString('th-TH', {day:'2-digit',month:'short',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+    document.getElementById('syncTs').textContent = 'อัพเดท ' + ts;
+    document.getElementById('footerTs').textContent = 'ข้อมูล ณ ' + ts;
+    document.getElementById('loadingOverlay').classList.add('hidden');
+  } catch(e) {
+    console.error(e);
+    dot.className = 'sync-dot err';
+    document.getElementById('errTxt').textContent = 'Load failed: ' + e.message + ' - Press Refresh';
+    err.classList.add('show');
+    document.getElementById('loadingOverlay').classList.add('hidden');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '↻ รีเฟรช';
+  }
+}
+
+loadData();
+setInterval(loadData, REFRESH_MS);
+
+// Safety failsafe 45s
+setTimeout(() => {
+  const ov = document.getElementById('loadingOverlay');
+  if (ov && !ov.classList.contains('hidden')) {
+    ov.classList.add('hidden');
+    document.getElementById('errBanner').classList.add('show');
+    document.getElementById('errTxt').textContent = 'Timeout 45s - Press Refresh. Check Sheet is public.';
+  }
+}, 45000);
+</script>
+</body>
+</html>
